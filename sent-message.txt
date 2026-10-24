@@ -1,0 +1,141 @@
+Subject: 3.6.11: ps -ef omits sh started by system() and popen() (Windows 10)
+
+Hello,
+
+A shell started by system() or popen() is not listed by "ps -ef".
+"ps -W" lists it only as a Windows process (PPID 0, UID 0, TTY "?",
+PID = 4194304 + WINPID). The same shell command started with fork() +
+execl() or posix_spawn() is listed normally. The shell itself exists:
+it runs, it reads its own /proc/<pid>/winpid, and /proc/<pid>/status
+shows it with the calling program as PPid.
+
+I found no earlier report involving system() or popen() on the list.
+The closest older threads are listed under "Related" at the end.
+
+
+ENVIRONMENT
+
+  Cygwin DLL:  3.6.11-1 (uname -r: 3.6.11-1.x86_64)
+               also seen on 3.6.10-1, before updating
+  Windows:     Windows 10 Pro, 10.0 build 19045, Russian UI language
+  Terminal:    mintty
+
+  Output of "cygcheck -s -v -r" is attached as cygcheck.out.
+  The username was replaced with USER and the hostname with HOST
+  in cygcheck.out and pscheck-output.txt.
+
+
+WHAT I OBSERVED
+
+The attached pscheck.c starts one shell command by the method named on
+its command line, and then prints only the rows that concern that
+shell. The shell command is (one line):
+
+  echo $$ $(cat /proc/$$/winpid) > /tmp/ids.txt;
+  ps -W > /tmp/psW.txt; ps -ef > /tmp/psef.txt
+
+The shell therefore saves its own PID and WINPID, and then lists
+processes while it is still alive.
+
+Results on 3.6.11-1:
+
+  method       ps -ef rows    ps -W rows       ps -W rows
+               for shell      by Cygwin PID    by WINPID
+  ------------ -------------- ---------------- ---------------------
+  system()     0              0                1 (sh.exe, PPID 0)
+  popen()      0              0                1 (sh.exe, PPID 0)
+  fork+execl   1              1                1 (same row)
+  posix_spawn  1              1                1 (same row)
+
+Example, system(): shell pid 702, winpid 20380. The only match is this
+ps -W row:
+
+  4214684  0  0  20380  ?  0  11:02:05  C:\cygwin64\bin\sh.exe
+
+(4214684 = 4194304 + 20380.) No row with PID 702 appears in ps -ef or
+in ps -W.
+
+Example, fork+execl: shell pid 723, winpid 16332. ps -W:
+
+  723  722  722  16332  pty1  197609  11:04:21  /usr/bin/sh
+
+and ps -ef lists the shell with PPID 722, the calling program.
+
+The result was the same in every run I made, at least three per
+method, on 3.6.10-1 and 3.6.11-1.
+
+From an earlier run on 3.6.10-1, system() with the shell kept alive
+(calling program pid 821, shell pid 822): "ps -ef" listed the
+child "ps" (pid 823) with PPID 822, but no row had PID 822. At the same
+time /proc/822/status showed:
+
+  Name:   sh
+  State:  S (sleeping)
+  Pid:    822
+  PPid:   821
+
+
+HOW TO REPRODUCE
+
+  gcc pscheck.c -o pscheck -std=c90 -D_POSIX_C_SOURCE=200809L \
+      -Wall -Wpedantic
+  ./pscheck system
+  ./pscheck popen
+  ./pscheck fork
+  ./pscheck spawn
+
+Each run ends with a three-line summary like the table above. The
+complete output of all four runs is attached as pscheck-output.txt.
+
+
+WHAT I EXPECTED
+
+That the shell appears in "ps -ef" with the calling program as its
+parent, as it does for fork()+execl() and posix_spawn().
+
+
+WHAT I CHECKED AND WHAT I DID NOT
+
+  - From an older copy of winsup/utils/ps.cc, ps appears to print
+    whatever cygwin_internal (CW_GETPINFO, pid | CW_NEXTPID) returns,
+    with no filter other than the UID check (which -e disables).
+    I did not look at the current source or at the DLL side.
+  - I have not read the system() or popen() implementation, and I do
+    not know the cause.
+  - I tested on one machine only, and have not tried a clean Cygwin
+    installation or another Windows version.
+  - I have not checked installed software against the list of
+    applications known to interfere with Cygwin.
+
+
+RELATED
+
+An older thread describes ps -W showing a Windows-process row for a
+native Windows program started from bash, and notes that ps -W does
+not have a perfect algorithm for masking the Windows process:
+
+  https://sourceware.org/legacy-ml/cygwin/2008-06/msg00600.html
+
+That case involved a native Windows program. Here the process is a
+Cygwin sh, and only the Windows-style row appears.
+
+A 2006 thread, "Re: "Ghost" processes on Cygwin" (mwoehlke, 27 Apr
+2006), reports Cygwin bash.exe and sh.exe processes that do not show
+up in ps. Christopher Faylor's reply there says that Windows has no
+exec, so Cygwin has to emulate it.
+
+In my tests the fork()+execl() case also runs /bin/sh through exec and
+is listed normally, so I cannot tell whether the same mechanism
+applies to the system() and popen() cases.
+
+Please tell me if any other output would help.
+
+Regards,
+Daniyar
+
+
+ATTACHMENTS (plain text)
+
+  cygcheck.out        output of: cygcheck -s -v -r
+  pscheck.c           test program
+  pscheck-output.txt  output of ./pscheck for system, popen, fork, spawn

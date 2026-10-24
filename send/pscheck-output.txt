@@ -1,0 +1,74 @@
+mode: system
+my pid=1130  my parent pid=1115
+start method returned 0
+
+shell: cygwin pid=1131  winpid=8296
+
+rows in 'ps -ef' whose PID column is the shell:
+
+rows in 'ps -W' matching the shell's PID or WINPID:
+  [WINPID matches]   4202600       0       0       8296  ?              0 16:18:15 C:\cygwin64\bin\sh.exe
+
+summary (system):
+  ps -ef rows with PID == shell        : 0
+  ps -W  rows with PID == shell        : 0
+  ps -W  rows with WINPID == shell's   : 1
+
+files kept for inspection: /tmp/ids.txt /tmp/psW.txt /tmp/psef.txt
+
+mode: popen
+my pid=1135  my parent pid=1115
+start method returned 0
+
+shell: cygwin pid=1136  winpid=28668
+
+rows in 'ps -ef' whose PID column is the shell:
+
+rows in 'ps -W' matching the shell's PID or WINPID:
+  [WINPID matches]   4222972       0       0      28668  ?              0 16:18:15 C:\cygwin64\bin\sh.exe
+
+summary (popen):
+  ps -ef rows with PID == shell        : 0
+  ps -W  rows with PID == shell        : 0
+  ps -W  rows with WINPID == shell's   : 1
+
+files kept for inspection: /tmp/ids.txt /tmp/psW.txt /tmp/psef.txt
+
+mode: fork
+my pid=1140  my parent pid=1115
+start method returned 0
+
+shell: cygwin pid=1141  winpid=9404
+
+rows in 'ps -ef' whose PID column is the shell:
+  USER    1141    1140 pty1     16:18:14 sh -c echo $$ $(cat /proc/$$/winpid) > /tmp/ids.txt; ps -W > /tmp/psW.txt; ps -ef > /tmp/psef.txt 
+
+rows in 'ps -W' matching the shell's PID or WINPID:
+  [PID matches + WINPID matches]      1141    1140    1115       9404  pty1      197609 16:18:14 /usr/bin/sh
+
+summary (fork):
+  ps -ef rows with PID == shell        : 1
+  ps -W  rows with PID == shell        : 1
+  ps -W  rows with WINPID == shell's   : 1
+
+files kept for inspection: /tmp/ids.txt /tmp/psW.txt /tmp/psef.txt
+
+mode: spawn
+my pid=1145  my parent pid=1115
+start method returned 0
+
+shell: cygwin pid=1146  winpid=7348
+
+rows in 'ps -ef' whose PID column is the shell:
+  USER    1146    1145 pty1     16:18:14 sh -c echo $$ $(cat /proc/$$/winpid) > /tmp/ids.txt; ps -W > /tmp/psW.txt; ps -ef > /tmp/psef.txt 
+
+rows in 'ps -W' matching the shell's PID or WINPID:
+  [PID matches + WINPID matches]      1146    1145    1115       7348  pty1      197609 16:18:14 /usr/bin/sh
+
+summary (spawn):
+  ps -ef rows with PID == shell        : 1
+  ps -W  rows with PID == shell        : 1
+  ps -W  rows with WINPID == shell's   : 1
+
+files kept for inspection: /tmp/ids.txt /tmp/psW.txt /tmp/psef.txt
+
